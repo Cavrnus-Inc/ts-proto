@@ -348,6 +348,7 @@ export function isOptionalProperty(
   return (
     (optionalMessages && isMessage(field) && !isRepeated(field)) ||
     (optionalAll && !messageOptions?.mapEntry) ||
+    isWithinOneOf(field) ||
     field.proto3Optional
   );
 }

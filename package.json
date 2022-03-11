@@ -1,9 +1,9 @@
 {
-  "name": "ts-proto",
+  "name": "@cavrnus/ts-proto",
   "version": "1.108.0",
   "description": "",
   "main": "build/plugin.js",
-  "repository": "github:stephenh/ts-proto",
+  "repository": "github:Cavrnus-Inc/ts-proto",
   "bin": {
     "protoc-gen-ts_proto": "./protoc-gen-ts_proto"
   },
