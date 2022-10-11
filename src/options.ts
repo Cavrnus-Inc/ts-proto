@@ -45,6 +45,7 @@ export type Options = {
   stringEnums: boolean;
   constEnums: boolean;
   enumsAsLiterals: boolean;
+  enumsAsTypeUnions: boolean;
   outputClientImpl: boolean | 'grpc-web';
   outputServices: ServiceOption[];
   addGrpcMetadata: boolean;
@@ -83,6 +84,7 @@ export function defaultOptions(): Options {
     stringEnums: false,
     constEnums: false,
     enumsAsLiterals: false,
+	enumsAsTypeUnions: false,
     outputClientImpl: true,
     outputServices: [],
     returnObservable: false,

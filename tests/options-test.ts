@@ -10,6 +10,7 @@ describe('options', () => {
         "context": false,
         "emitImportedFiles": true,
         "enumsAsLiterals": false,
+		"enumsAsTypeUnions": false,
         "env": "both",
         "esModuleInterop": false,
         "exportCommonSymbols": true,

@@ -20,7 +20,11 @@ export function generateEnum(
 
   maybeAddComment(sourceInfo, chunks, enumDesc.options?.deprecated);
 
-  if (options.enumsAsLiterals) {
+  if (options.enumsAsTypeUnions)
+  {
+	chunks.push(code`export type ${def(fullName)} = `);
+  }
+  else if (options.enumsAsLiterals) {
     chunks.push(code`export const ${def(fullName)} = {`);
   } else {
     chunks.push(code`export ${options.constEnums ? 'const ' : ''}enum ${def(fullName)} {`);
@@ -31,18 +35,36 @@ export function generateEnum(
   enumDesc.value.forEach((valueDesc, index) => {
     const info = sourceInfo.lookup(Fields.enum.value, index);
     maybeAddComment(info, chunks, valueDesc.options?.deprecated, `${valueDesc.name} - `);
-    chunks.push(
-      code`${valueDesc.name} ${delimiter} ${options.stringEnums ? `"${valueDesc.name}"` : valueDesc.number.toString()},`
-    );
+	if (options.enumsAsTypeUnions)
+	{
+		chunks.push(
+			code`'${valueDesc.name.toLowerCase()}' | `
+		);
+	}
+	else
+	{
+    	chunks.push(
+      		code`${valueDesc.name} ${delimiter} ${options.stringEnums ? `"${valueDesc.name}"` : valueDesc.number.toString()},`
+    	);
+	}
   });
 
-  if (options.unrecognizedEnum)
-    chunks.push(code`
-      ${UNRECOGNIZED_ENUM_NAME} ${delimiter} ${
-      options.stringEnums ? `"${UNRECOGNIZED_ENUM_NAME}"` : UNRECOGNIZED_ENUM_VALUE.toString()
-    },`);
+  if (options.enumsAsTypeUnions)
+  {
+	chunks.push(code`'${UNRECOGNIZED_ENUM_NAME}';`);
+  }
+  else
+  {
+  	if (options.unrecognizedEnum)
+	    chunks.push(code`
+      	${UNRECOGNIZED_ENUM_NAME} ${delimiter} ${
+      	options.stringEnums ? `"${UNRECOGNIZED_ENUM_NAME}"` : UNRECOGNIZED_ENUM_VALUE.toString()
+    	},`);
+	}
 
-  if (options.enumsAsLiterals) {
+	if (options.enumsAsTypeUnions)
+	{}	
+  else if (options.enumsAsLiterals) {
     chunks.push(code`} as const`);
     chunks.push(code`\n`);
     chunks.push(code`export type ${def(fullName)} = typeof ${def(fullName)}[keyof typeof ${def(fullName)}]`);
@@ -56,11 +78,11 @@ export function generateEnum(
   }
   if (options.outputJsonMethods) {
     chunks.push(code`\n`);
-    chunks.push(generateEnumToJson(fullName, enumDesc));
+    chunks.push(generateEnumToJson(ctx, fullName, enumDesc));
   }
   if (options.stringEnums && options.outputEncodeMethods) {
     chunks.push(code`\n`);
-    chunks.push(generateEnumToNumber(fullName, enumDesc));
+    chunks.push(generateEnumToNumber(ctx, fullName, enumDesc));
   }
 
   return joinCode(chunks, { on: '\n' });
@@ -79,11 +101,17 @@ export function generateEnumFromJson(ctx: Context, fullName: string, enumDesc: E
     chunks.push(code`
       case ${valueDesc.number}:
       case "${valueDesc.name}":
-        return ${fullName}.${valueDesc.name};
+        return ${options.enumsAsTypeUnions ? `"${valueDesc.name}"` : `${fullName}.${valueDesc.name}`};
     `);
   }
 
-  if (options.unrecognizedEnum) {
+  if (options.enumsAsTypeUnions) {
+	chunks.push(code`
+	  default:
+        return ${UNRECOGNIZED_ENUM_VALUE};
+	`);
+  }
+  else if (options.unrecognizedEnum) {
     chunks.push(code`
       case ${UNRECOGNIZED_ENUM_VALUE}:
       case "${UNRECOGNIZED_ENUM_NAME}":
@@ -104,15 +132,16 @@ export function generateEnumFromJson(ctx: Context, fullName: string, enumDesc: E
 }
 
 /** Generates a function with a big switch statement to encode our enum -> JSON. */
-export function generateEnumToJson(fullName: string, enumDesc: EnumDescriptorProto): Code {
+export function generateEnumToJson(ctx: Context, fullName: string, enumDesc: EnumDescriptorProto): Code {
   const chunks: Code[] = [];
+  const { options } = ctx;
 
   const functionName = camelCase(fullName) + 'ToJSON';
   chunks.push(code`export function ${def(functionName)}(object: ${fullName}): string {`);
   chunks.push(code`switch (object) {`);
 
   for (const valueDesc of enumDesc.value) {
-    chunks.push(code`case ${fullName}.${valueDesc.name}: return "${valueDesc.name}";`);
+    chunks.push(code`case ${options.enumsAsTypeUnions ? `"${valueDesc.name}"` : `${fullName}.${valueDesc.name}`}: return "${valueDesc.name}";`);
   }
   chunks.push(code`default: return "UNKNOWN";`);
 
@@ -122,14 +151,15 @@ export function generateEnumToJson(fullName: string, enumDesc: EnumDescriptorPro
 }
 
 /** Generates a function with a big switch statement to encode our string enum -> int value. */
-export function generateEnumToNumber(fullName: string, enumDesc: EnumDescriptorProto): Code {
+export function generateEnumToNumber(ctx: Context, fullName: string, enumDesc: EnumDescriptorProto): Code {
   const chunks: Code[] = [];
+  const { options } = ctx;
 
   const functionName = camelCase(fullName) + 'ToNumber';
   chunks.push(code`export function ${def(functionName)}(object: ${fullName}): number {`);
   chunks.push(code`switch (object) {`);
   for (const valueDesc of enumDesc.value) {
-    chunks.push(code`case ${fullName}.${valueDesc.name}: return ${valueDesc.number};`);
+    chunks.push(code`case ${options.enumsAsTypeUnions ? `"${valueDesc.name}"` : `${fullName}.${valueDesc.name}`}: return ${valueDesc.number};`);
   }
   chunks.push(code`default: return 0;`);
   chunks.push(code`}`);
