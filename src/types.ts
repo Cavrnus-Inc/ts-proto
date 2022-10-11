@@ -346,7 +346,7 @@ export function isOptionalProperty(
     options.useOptionals === true || options.useOptionals === 'messages' || options.useOptionals === 'all';
   const optionalAll = options.useOptionals === 'all';
   return (
-    (optionalMessages && isMessage(field) && !isRepeated(field)) ||
+    (optionalMessages && isMessage(field)) ||
     (optionalAll && !messageOptions?.mapEntry) ||
     isWithinOneOf(field) ||
     field.proto3Optional
